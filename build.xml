@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project xmlns:ivy="antlib:org.apache.ivy.ant" name="elevator" default="main">
+    <property file="build.properties"/>
+
+    <path id="dependencies">
+        <pathelement path="${lib.dir}/log4j-api-jar-2.7.jar"/>
+        <pathelement path="${lib.dir}/log4j-api-jar-2.7.jar"/>
+        <pathelement path="${lib.dir}/junit-jar-4.12.jar"/>
+        <pathelement path="${lib.dir}/hamcrest-core-jar-1.3.jar"/>
+        <pathelement path="${lib.dir}/mockito-core-jar-1.10.19.jar"/>
+        <pathelement path="${lib.dir}/objenesis-jar-2.1.jar"/>
+    </path>
+
+    <target name="resolve">
+        <mkdir dir="${lib.dir}"/>
+        <ivy:resolve/>
+        <ivy:retrieve pattern="${lib.dir}/[artifact]-[type]-[revision].[ext]"/>
+    </target>
+
+    <target name="build" depends="resolve">
+        <mkdir dir="${classes.dir}"/>
+        <copy file="${src.dir}/main/java/log4j2.xml" todir="${classes.dir}"/>
+        <javac classpathref="dependencies" srcdir="${src.dir}" destdir="${classes.dir}" includeantruntime="false"/>
+    </target>
+
+    <target name="run-application" depends="build">
+        <java classname="by.training.Runner" classpath="${classes.dir}">
+            <classpath>
+                <pathelement location="lib/log4j-core-jar-2.7.jar"/>
+                <pathelement location="lib/log4j-api-jar-2.7.jar"/>
+            </classpath>
+        </java>
+    </target>
+
+    <target name="test" depends="run-application">
+        <mkdir dir="${report.dir}"/>
+        <junit printsummary="on" haltonfailure="no" includeantruntime="true">
+            <classpath refid="dependencies"/>
+            <classpath location="${classes.dir}"/>
+            <formatter type="plain"/>
+            <batchtest todir="${report.dir}" fork="yes">
+                <fileset dir="${src.dir}/test/java">
+                    <include name="**/*Test.java"/>
+                </fileset>
+            </batchtest>
+        </junit>
+    </target>
+
+    <target name="dist" depends="copy-dependencies, build">
+        <manifest file="./MANIFEST.MF">
+            <attribute name="Main-Class" value="by.training.Runner"/>
+        </manifest>
+        <mkdir dir="${jar.dir}"/>
+        <jar basedir="${classes.dir}" destfile="${jar.dir}/dist.jar" manifest="./MANIFEST.MF">
+            <zipfileset src="${dist.lib.dir}/dependencies-all.jar"/>
+        </jar>
+        <delete file="MANIFEST.MF"/>
+    </target>
+
+    <target name="copy-dependencies">
+        <mkdir dir="${dist.lib.dir}" />
+        <jar jarfile="${dist.lib.dir}/dependencies-all.jar">
+            <zipgroupfileset dir="${lib.dir}">
+                <include name="**/*.jar" />
+            </zipgroupfileset>
+        </jar>
+    </target>
+
+    <target name="clean">
+        <delete dir="${classes.dir}"/>
+        <delete dir="${jar.dir}"/>
+        <delete dir="${lib.dir}"/>
+        <delete dir="${log.dir}"/>
+    </target>
+
+    <target name="main" depends="test"/>
+
+</project>
